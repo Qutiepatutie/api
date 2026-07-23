@@ -4,7 +4,7 @@
 > **Note:** Make sure you're in the root directory (\api)
 ```
 npm install
-npm run dev
+npm start
 ```
 
 Then you're good to go!

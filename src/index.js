@@ -93,15 +93,18 @@ app.get('/tasks', (req, res) => {
 
 app.get('/tasks/:id', (req, res) => {
 
-    const task = tasks.find(task => task.id === Number(req.params.id));
+    const id = req.params.id;
+
+    const getTasksStmt = db.prepare(`SELECT * from tasks WHERE id = ${id}`);
+    const fetchedTask = getTasksStmt.all();
     
-    if (!task) {
+    if (fetchedTask.length === 0) {
         return res.status(404).send({
-            error: `Task ${req.params.id} not found`
+            error: `Task ${id} not found`
         });
     }
 
-    res.status(200).send(task);
+    res.status(200).send(fetchedTask);
 });
 
 // STAGE 3
