@@ -17,7 +17,7 @@ const createTable = `
     CREATE TABLE IF NOT EXISTS tasks(
         id INTEGER PRIMARY KEY,
         title TEXT NOT NULL,
-        done INTEGER default 0 NOT NULL
+        done INTEGER default 0
     );
 `;
 
@@ -58,8 +58,7 @@ app.get('/health', (req, res) => {
 // STAGE 2 // A2 STAGE 0
 
 app.get('/tasks', (req, res) => {
-    const getTasksStmt = db.prepare("SELECT * from tasks");
-    const fetchedTasks = getTasksStmt.all();
+    const fetchedTasks = db.prepare("SELECT * from tasks").all();
     
     res.status(200).send(fetchedTasks); 
 });
@@ -95,8 +94,7 @@ app.get('/tasks/:id', (req, res) => {
 
     const id = req.params.id;
 
-    const getTasksStmt = db.prepare(`SELECT * from tasks WHERE id = ${id}`);
-    const fetchedTask = getTasksStmt.all();
+    const fetchedTask = db.prepare(`SELECT * from tasks WHERE id = ${id}`).all();
     
     if (fetchedTask.length === 0) {
         return res.status(404).send({
@@ -117,15 +115,11 @@ app.post('/tasks', (req, res) => {
             error: "Title should not be empty"
         });
     }
-    const newTask = {
-        id: tasks.length + 1,
-        title: title,
-        done: false
-    }
 
-    tasks.push(newTask);
+    db.prepare("INSERT INTO tasks (title) VALUES (?)").run(title);
+    const task = db.prepare(`SELECT * FROM tasks ORDER BY id DESC LIMIT 1`).all();
     
-    res.status(201).send(newTask);
+    res.status(201).send(task);
 });
 
 // STAGE 4
