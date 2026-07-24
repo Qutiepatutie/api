@@ -105,7 +105,7 @@ app.get('/tasks/:id', (req, res) => {
     res.status(200).send(fetchedTask);
 });
 
-// STAGE 3
+// STAGE 3 // A2 STAGE 2
 
 app.post('/tasks', (req, res) => {
     const title = req.body.title?.trim();
@@ -122,11 +122,17 @@ app.post('/tasks', (req, res) => {
     res.status(201).send(task);
 });
 
-// STAGE 4
+// STAGE 4 // A2 STAGE 3
 
 app.put('/tasks/:id', (req, res) => {
     const id = Number(req.params.id);
 
+    const { title, done } = req.body;
+    
+    console.log(Object.values(req.body));
+    
+    const tasks = db.prepare("SELECT * FROM tasks").all();
+    
     if (!tasks.find(task => task.id === id)) {
         return res.status(404).send();
     }
@@ -134,34 +140,36 @@ app.put('/tasks/:id', (req, res) => {
     if (Object.keys(req.body).length === 0) {
         return res.status(400).send();
     }
-    
-    const newTitle = req.body.title?.trim() ?? "";
-    const done = req.body.done;
-    
-    tasks = tasks.map(prev => {
-        if (prev.id === id) {
-            return ({
-                ...prev,
-                title: newTitle ? newTitle : prev.title,
-                    done: done ?? prev.done
-            });
-        }
-        return prev;
-    });
 
-    const updatedTask = tasks.find(task => task.id === id)
+    let query = "";
+    
+    if (title && done != undefined) {
+        query = "title = ?, done = ?";
+        
+    } else if (title) {
+        query = "title = ?";
+        
+    } else if (done != undefined) {
+        query = "done = ?"
+        
+    }
+
+    db.prepare(`UPDATE tasks SET ${query} WHERE id = ?`).run(Object.values(req.body),id);
+    const updatedTask = db.prepare("SELECT * from tasks WHERE id = ?").get(id);
 
     res.status(200).send(updatedTask);
 })
 
 app.delete('/tasks/:id', (req, res) => {
     const id = Number(req.params.id);
-
+    
+    const tasks = db.prepare("SELECT * FROM tasks").all();
+    
     if (!tasks.find(task => task.id === id)) {
         return res.status(404).send();
     }
 
-    tasks = tasks.filter(task => task.id !== id);
+    db.prepare("DELETE FROM tasks WHERE id = ?").run(id);
 
     res.status(204).send();
 })
