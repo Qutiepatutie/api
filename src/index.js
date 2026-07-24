@@ -57,38 +57,36 @@ app.get('/health', (req, res) => {
 
 // STAGE 2 // A2 STAGE 0
 
-app.get('/tasks', (req, res) => {
-    const fetchedTasks = db.prepare("SELECT * from tasks").all();
+// app.get('/tasks', (req, res) => {
+//     const fetchedTasks = db.prepare("SELECT * from tasks").all(); // Commented only for documentation
     
-    res.status(200).send(fetchedTasks); 
-});
-
-// Extra feature
-
-// app.get('/tasks', (req, res) => {    
-//     const title = req.query.title?.trim().toLowerCase();
-//     const done = req.query.done?.trim().toLowerCase();
-
-//     let result = tasks;
-
-//     if (title) {
-//         result = result.filter(task => { 
-//             if (task.title.toLowerCase().includes(title)) {
-//                 return task;
-//             }
-//         });
-//     }
-
-//     if (done) {
-//         result = result.filter(task => { 
-//             if (String(task.done) === done) {
-//                 return task;
-//             }
-//         });
-//     }
-
-//     res.status(200).send(result);
+//     res.status(200).send(fetchedTasks); 
 // });
+
+// A2 Extra feature
+
+app.get('/tasks', (req, res) => {    
+    const title = req.query.title?.trim().toLowerCase();
+    const done = req.query.done ?? undefined;
+    
+    let query = "";
+    let params = {};
+
+    if (title && done) {
+        query = "title LIKE ? and done = ?";
+        params = { title, done };
+    } else if (title) {
+        query = "title LIKE ?";
+        params = { title };
+    } else if (done) {
+        query = "done = ?";
+        params = { done };
+    }
+
+    const result = db.prepare(`SELECT * FROM tasks WHERE ${query}`).all(...Object.values(params));
+
+    res.status(200).send(result);
+});
 
 app.get('/tasks/:id', (req, res) => {
 
