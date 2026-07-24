@@ -94,7 +94,7 @@ app.get('/tasks/:id', (req, res) => {
 
     const id = req.params.id;
 
-    const fetchedTask = db.prepare(`SELECT * from tasks WHERE id = ${id}`).all();
+    const fetchedTask = db.prepare("SELECT * from tasks WHERE id = ?").get(id);
     
     if (fetchedTask.length === 0) {
         return res.status(404).send({
@@ -117,7 +117,7 @@ app.post('/tasks', (req, res) => {
     }
 
     db.prepare("INSERT INTO tasks (title) VALUES (?)").run(title);
-    const task = db.prepare(`SELECT * FROM tasks ORDER BY id DESC LIMIT 1`).all();
+    const task = db.prepare(`SELECT * FROM tasks ORDER BY id DESC LIMIT 1`).get();
     
     res.status(201).send(task);
 });
@@ -131,9 +131,9 @@ app.put('/tasks/:id', (req, res) => {
     
     console.log(Object.values(req.body));
     
-    const tasks = db.prepare("SELECT * FROM tasks").all();
+    const tasks = db.prepare("SELECT * FROM tasks WHERE id = ?").get(id);
     
-    if (!tasks.find(task => task.id === id)) {
+    if (!tasks) {
         return res.status(404).send();
     }
 
@@ -154,7 +154,7 @@ app.put('/tasks/:id', (req, res) => {
         
     }
 
-    db.prepare(`UPDATE tasks SET ${query} WHERE id = ?`).run(Object.values(req.body),id);
+    db.prepare(`UPDATE tasks SET ${query} WHERE id = ?`).run(...Object.values(req.body),id);
     const updatedTask = db.prepare("SELECT * from tasks WHERE id = ?").get(id);
 
     res.status(200).send(updatedTask);
