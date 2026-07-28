@@ -34,13 +34,13 @@ let tasks = [
         { title: "code", done: false },
 ]
 
-const rows = await client.query("SELECT * from tasks");
+const clientRes = await pool.query("SELECT * from tasks");
 
-if (rows.rowCount === 0) {
+if (clientRes.rowCount === 0) {
     const query = "INSERT INTO tasks(title, done) VALUES($1, $2)";
     
     for (const task of tasks) {
-        await client.query(query, [task.title, task.done]); 
+        await pool.query(query, [task.title, task.done]); 
     }
 }
 
@@ -60,55 +60,56 @@ app.get('/health', (req, res) => {
     });
 });
 
-// STAGE 2 // A2 STAGE 0
+// STAGE 2 // A2 STAGE 0 // A3 Stage 2
 
-// app.get('/tasks', (req, res) => {
-//     const fetchedTasks = db.prepare("SELECT * from tasks").all(); // Commented only for documentation
+app.get('/tasks', async (req, res) => {
+    const tasks = await pool.query("SELECT * FROM tasks");
     
-//     res.status(200).send(fetchedTasks); 
-// });
+    res.status(200).send(tasks.rows); 
+});
 
 // A2 Extra feature
 
-app.get('/tasks', (req, res) => {    
-    const title = req.query.title?.trim().toLowerCase();
-    const done = req.query.done ?? undefined;
+// app.get('/tasks', (req, res) => {    
+//     const title = req.query.title?.trim().toLowerCase();
+//     const done = req.query.done ?? undefined;
     
-    const conditions = [];
-    const params = [];
+//     const conditions = [];
+//     const params = [];
 
-    if (title) {
-        conditions.push("title like ?");
-        params.push(title);
-    }
+//     if (title) {
+//         conditions.push("title like ?");
+//         params.push(title);
+//     }
 
-    if (done !== undefined) {
-        conditions.push("done = ?");
-        params.push(done);
-    }
+//     if (done !== undefined) {
+//         conditions.push("done = ?");
+//         params.push(done);
+//     }
 
-    const where = conditions.length
-        ? `WHERE ${conditions.join(" AND ")}`
-        : ""
+//     const where = conditions.length
+//         ? `WHERE ${conditions.join(" AND ")}`
+//         : ""
 
-    const result = db.prepare(`SELECT * FROM tasks ${where}`).all(...params);
+//     const result = db.prepare(`SELECT * FROM tasks ${where}`).all(...params);
 
-    res.status(200).send(result);
-});
+//     res.status(200).send(result);
+// });
 
-app.get('/tasks/:id', (req, res) => {
-
+app.get('/tasks/:id', async (req, res) => {
     const id = req.params.id;
 
-    const fetchedTask = db.prepare("SELECT * from tasks WHERE id = ?").get(id);
+    const query = "SELECT * from tasks WHERE id = $1";
+
+    const fetchedTask = await pool.query(query, [id]);
     
-    if (fetchedTask.length === 0) {
+    if (fetchedTask.rowCount === 0) {
         return res.status(404).send({
             error: `Task ${id} not found`
         });
     }
 
-    res.status(200).send(fetchedTask);
+    res.status(200).send(fetchedTask.rows[0]);
 });
 
 // STAGE 3 // A2 STAGE 2
