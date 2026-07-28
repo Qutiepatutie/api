@@ -1,42 +1,47 @@
+import { Pool } from "pg";
 import express from "express";
 import swaggerUI from "swagger-ui-express";
 import swaggerDoc from "../swagger.json" with { type: "json" };
-
-import Database from "better-sqlite3";
+import "dotenv/config";
 
 const app = express();
 const port = 3000;
+const DB_URL = process.env.DATABASE_URL
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/docs', swaggerUI.serve, swaggerUI.setup(swaggerDoc));
 
-const db = new Database("tasks.db");
-db.pragma("journal_mode = WAL");
+const pool = new Pool({
+    connectionString: DB_URL,
+});
+
+const client = await pool.connect();
+
 const createTable = `
     CREATE TABLE IF NOT EXISTS tasks(
-        id INTEGER PRIMARY KEY,
+        id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
         title TEXT NOT NULL,
-        done INTEGER default 0
+        done BOOLEAN DEFAULT FALSE
     );
 `;
 
-db.exec(createTable);
+await client.query(createTable);
 
 let tasks = [
-        { title: "study", done: 0 },
-        { title: "work on project", done: 1 },
-        { title: "code", done: 0 },
+        { title: "study", done: false },
+        { title: "work on project", done: true },
+        { title: "code", done: false },
 ]
 
-const rows = db.prepare("SELECT COUNT(*) as count FROM tasks;").get();
+const rows = await client.query("SELECT * from tasks");
 
-if (rows.count === 0) {
-    const insertInit = db.prepare("INSERT INTO tasks(title, done) VALUES(?, ?)");
-
-    tasks.forEach((task) => {
-        insertInit.run(task.title, task.done);
-    });
+if (rows.rowCount === 0) {
+    const query = "INSERT INTO tasks(title, done) VALUES($1, $2)";
+    
+    for (const task of tasks) {
+        await client.query(query, [task.title, task.done]); 
+    }
 }
 
 // STAGE 1
@@ -178,3 +183,5 @@ app.delete('/tasks/:id', (req, res) => {
 app.listen(port, () => {
     console.log(`App is listening to ${port}`);
 });
+
+client.release();
