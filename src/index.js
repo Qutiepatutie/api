@@ -69,21 +69,24 @@ app.get('/tasks', (req, res) => {
     const title = req.query.title?.trim().toLowerCase();
     const done = req.query.done ?? undefined;
     
-    let query = "";
-    let params = {};
+    const conditions = [];
+    const params = [];
 
-    if (title && done) {
-        query = "title LIKE ? and done = ?";
-        params = { title, done };
-    } else if (title) {
-        query = "title LIKE ?";
-        params = { title };
-    } else if (done) {
-        query = "done = ?";
-        params = { done };
+    if (title) {
+        conditions.push("title like ?");
+        params.push(title);
     }
 
-    const result = db.prepare(`SELECT * FROM tasks WHERE ${query}`).all(...Object.values(params));
+    if (done !== undefined) {
+        conditions.push("done = ?");
+        params.push(done);
+    }
+
+    const where = conditions.length
+        ? `WHERE ${conditions.join(" AND ")}`
+        : ""
+
+    const result = db.prepare(`SELECT * FROM tasks ${where}`).all(...params);
 
     res.status(200).send(result);
 });
