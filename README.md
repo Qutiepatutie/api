@@ -1,20 +1,37 @@
 # Task API
 
-A basic CRUD API built with Express.js
+A simple CRUD API built with Express.js and PostgreSQL.
 
 ## Prerequisites
 
 - Node.js 22+
 - npm
+- Docker
 
-## How to install and run it
+## Setup
 > **Note:** Make sure you're in the project's root directory
+
+Copy .env.example to your own .env
+**Windows**
 ```bash
-npm install
-npm start
+copy .env.example .env
+```
+**macOS/Linux**
+```bash
+cp .env.example .env
 ```
 
-Then you're good to go!
+Start the API and PostreSQL containers:
+```bash
+docker compose up
+```
+
+Stop the containers:
+```bash
+docker compose down
+```
+
+Once the containers are running, the API will be available at `http://localhost:3000`
 
 ## Endpoints
 | METHOD  | ENDPOINT     |
@@ -77,21 +94,17 @@ Keep-Alive: timeout=5
 [{"id":2,"title":"work on project","done":1}]
 ```
 
-## Database Usage
+## Database
 
-This project uses SQLite for persistent storage. All data is stored inside a single database file (`tasks.db`).
+This project uses PostgreSQL running in a Docker container for persistent storage. 
 
-The database file `tasks.db` is automatically created if it doesn't exist when the application starts.
+>This is from docker exec
 
-## DB Browser
+**\dt**
+![table](assets/docker_exec_dt.PNG)
 
-### Database table in the browser:
-
-![Database Table](assets/dbBrowserTable.JPG)
-
-### Sample query in the browser:
-
-![Sample SQL Query](assets/dbBrowserQuery.JPG)
+**Select**
+![table](assets/docker_exec_select.PNG)
 
 ## Interactive API documentation
 
