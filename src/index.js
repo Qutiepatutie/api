@@ -112,9 +112,9 @@ app.get('/tasks/:id', async (req, res) => {
     res.status(200).send(fetchedTask.rows[0]);
 });
 
-// STAGE 3 // A2 STAGE 2
+// STAGE 3 // A2 STAGE 2 // A3 STAGE 3
 
-app.post('/tasks', (req, res) => {
+app.post('/tasks', async (req, res) => {
     const title = req.body.title?.trim();
 
     if (!title) {
@@ -123,60 +123,64 @@ app.post('/tasks', (req, res) => {
         });
     }
 
-    db.prepare("INSERT INTO tasks (title) VALUES (?)").run(title);
-    const task = db.prepare(`SELECT * FROM tasks ORDER BY id DESC LIMIT 1`).get();
+    const query = "INSERT INTO tasks (title) VALUES ($1) RETURNING *";
+    const newTask = await pool.query(query, [title]);
     
-    res.status(201).send(task);
+    res.status(201).send(newTask.rows[0]);
 });
 
-// STAGE 4 // A2 STAGE 3
+// STAGE 4 // A2 STAGE 3 // A3 Stage 3
 
-app.put('/tasks/:id', (req, res) => {
+app.put('/tasks/:id', async (req, res) => {
     const id = Number(req.params.id);
 
-    const { title, done } = req.body;
+    const getTask = "SELECT * FROM tasks WHERE id = $1";
+    const task = await pool.query(getTask, [id]);
     
-    console.log(Object.values(req.body));
-    
-    const tasks = db.prepare("SELECT * FROM tasks WHERE id = ?").get(id);
-    
-    if (!tasks) {
+    if (task.rowCount === 0) {
         return res.status(404).send();
     }
-
+    
     if (Object.keys(req.body).length === 0) {
         return res.status(400).send();
     }
-
-    let query = "";
     
-    if (title && done != undefined) {
-        query = "title = ?, done = ?";
-        
-    } else if (title) {
-        query = "title = ?";
-        
-    } else if (done != undefined) {
-        query = "done = ?"
-        
+    const { title, done } = req.body;
+    const params = [];
+    const values = [];
+    
+    if (title) {
+        params.push(`title = $${params.length+1}`);
+        values.push(title);
+    }    
+    
+    if (done !== undefined) {
+        params.push(`done = $${params.length+1}`);
+        values.push(done);
     }
 
-    db.prepare(`UPDATE tasks SET ${query} WHERE id = ?`).run(...Object.values(req.body),id);
-    const updatedTask = db.prepare("SELECT * from tasks WHERE id = ?").get(id);
+    const where = params.length
+        ? params.join(", ")
+        : "";
+    
+    const query = `UPDATE tasks SET ${where} WHERE id = $${params.length + 1} RETURNING *`;
+    const updatedTask = await pool.query(query, [...values,id]);
 
-    res.status(200).send(updatedTask);
+    res.status(200).send(updatedTask.rows[0]);
 })
 
-app.delete('/tasks/:id', (req, res) => {
+app.delete('/tasks/:id', async (req, res) => {
     const id = Number(req.params.id);
     
-    const tasks = db.prepare("SELECT * FROM tasks").all();
+    const getTask = "SELECT * FROM tasks WHERE id = $1";
+    const task = await pool.query(getTask, [id]);
     
-    if (!tasks.find(task => task.id === id)) {
+    if (task.rowCount === 0) {
         return res.status(404).send();
     }
 
-    db.prepare("DELETE FROM tasks WHERE id = ?").run(id);
+    const deleteTask = "DELETE FROM tasks WHERE id = $1";
+    await pool.query(deleteTask, [id]);
 
     res.status(204).send();
 })
@@ -184,5 +188,3 @@ app.delete('/tasks/:id', (req, res) => {
 app.listen(port, () => {
     console.log(`App is listening to ${port}`);
 });
-
-client.release();
