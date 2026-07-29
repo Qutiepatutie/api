@@ -5,7 +5,7 @@ import swaggerDoc from "../swagger.json" with { type: "json" };
 import "dotenv/config";
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT;
 const DB_URL = process.env.DATABASE_URL
 
 app.use(express.json());
